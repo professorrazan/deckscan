@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>DeckScan — Live Parking</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+:root{
+  --bg:#07090f;--bg2:#0d1117;--bg3:#131920;
+  --border:#1c2430;--border2:#263040;
+  --text:#e8edf5;--muted:#5a7080;--hint:#2e3d4d;
+  --green:#22c98a;--green-dim:#0d3d28;
+  --amber:#f5a623;--amber-dim:#3d2a08;
+  --red:#e84040;--red-dim:#3d0f0f;
+  --blue:#4e9eff;--blue-dim:#0d2540;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes ripple{0%{transform:scale(1);opacity:.6}100%{transform:scale(3);opacity:0}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:1000}
+.nav-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.nav-logo span{color:var(--green)}
+.live-pill{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:11px;color:var(--green);background:var(--green-dim);border:1px solid var(--green);padding:4px 10px;border-radius:20px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.2s ease-in-out infinite}
+
+.tab-bar{display:flex;gap:2px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg)}
+.tab{flex:1;padding:8px 4px;border:none;background:transparent;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .18s;text-align:center}
+.tab.active{background:var(--bg3);color:var(--text);border:1px solid var(--border2)}
+
+.container{max-width:480px;margin:0 auto;padding:14px}
+.page{display:none;animation:fadeUp .2s ease-out}
+.page.active{display:block}
+.sec{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:18px}
+.sec:first-child{margin-top:0}
+
+/* GPS SPLASH */
+.gps-splash{text-align:center;padding:3rem 1rem}
+.gps-spinner{width:48px;height:48px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--green);animation:spin .8s linear infinite;margin:0 auto 1rem}
+.gps-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:.5rem}
+.gps-sub{font-size:13px;color:var(--muted)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 10px}
+.stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+.g{color:var(--green)}.a{color:var(--amber)}.r{color:var(--red)}
+.stat-lbl{font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace}
+
+.best-banner{background:var(--green-dim);border:1px solid var(--green);border-radius:10px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.best-floor{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--green)}
+.best-right{font-size:10px;color:var(--green);opacity:.75;text-align:right;font-family:'DM Mono',monospace}
+
+/* MAP */
+#map{height:300px;border-radius:12px;border:1px solid var(--border);margin-bottom:14px;z-index:1}
+.leaflet-container{background:#0d1117!important}
+
+/* Blue user location dot */
+.user-dot-wrap{position:relative;width:20px;height:20px}
+.user-dot{width:14px;height:14px;background:var(--blue);border-radius:50%;border:2px solid white;position:absolute;top:3px;left:3px;z-index:2}
+.user-ripple{width:20px;height:20px;background:var(--blue);border-radius:50%;position:absolute;top:0;left:0;opacity:.5;animation:ripple 1.8s ease-out infinite}
+
+.floor-pills{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.floor-pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s}
+.floor-pill.active{background:var(--bg3);border-color:var(--green);color:var(--green)}
+
+.floor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.floor-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px;cursor:pointer;transition:border-color .15s}
+.floor-card.best{border-color:var(--green)}
+.floor-card:hover{border-color:var(--border2)}
+.fc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.fc-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
+.fc-badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:10px;font-family:'DM Mono',monospace}
+.b-open{background:var(--green-dim);color:var(--green)}
+.b-busy{background:var(--amber-dim);color:var(--amber)}
+.b-full{background:var(--red-dim);color:var(--red)}
+.fc-bar-wrap{height:4px;background:var(--hint);border-radius:2px;overflow:hidden}
+.fc-bar{height:100%;border-radius:2px;transition:width .6s ease}
+.fc-footer{display:flex;justify-content:space-between;margin-top:5px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted)}
+
+.activity{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px;margin-bottom:14px}
+.act-item{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--border)}
+.act-item:last-child{border-bottom:none;padding-bottom:0}
+.act-item:first-child{padding-top:0}
+.act-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.act-g{background:var(--green)}.act-a{background:var(--amber);animation:pulse 1.2s ease-in-out infinite}
+.act-text{font-size:12px;color:var(--muted);flex:1}
+.act-text strong{color:var(--text);font-weight:500}
+.act-time{font-family:'DM Mono',monospace;font-size:10px;color:var(--hint)}
+
+/* CHECKIN */
+.ci-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.fl{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:'DM Mono',monospace;display:block;margin-top:12px}
+.fl:first-child{margin-top:0}
+.lot-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lot-btn{padding:12px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center}
+.lot-btn.sel{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.floor-row{display:flex;gap:6px;flex-wrap:wrap}
+.floor-btn{flex:1;min-width:52px;padding:9px 4px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;text-align:center}
+.floor-btn.sel{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+.dur-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.dur-btn{padding:9px 4px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s;text-align:center}
+.dur-btn.sel{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
+.cta{width:100%;padding:14px;border-radius:10px;border:none;background:var(--green);color:#07090f;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:14px}
+.cta:active{transform:scale(.98)}
+
+.parked-card{background:var(--green-dim);border:1px solid var(--green);border-radius:12px;padding:18px;margin-bottom:14px;text-align:center}
+.parked-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--green);margin-bottom:4px}
+.parked-sub{font-size:12px;color:var(--green);opacity:.75;margin-bottom:14px;font-family:'DM Mono',monospace}
+.leave-btn{padding:11px 24px;border-radius:10px;border:1px solid var(--green);background:transparent;color:var(--green);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s}
+.leave-btn:hover{background:var(--green);color:#07090f}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0d3d28;border:1px solid var(--green);color:var(--green);padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap;font-family:'DM Mono',monospace}
+.toast.show{opacity:1}
+
+/* TRENDS */
+.trend-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.trend-table{width:100%;border-collapse:collapse}
+.trend-table th{font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);padding:7px 3px;text-align:center;border-bottom:1px solid var(--border);font-weight:500}
+.trend-table td{padding:2px}
+.trend-cell{height:18px;border-radius:3px}
+.trend-table tr td:first-child{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);padding:3px 8px;text-align:right;white-space:nowrap}
+.tip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tip{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:11px 9px}
+.tip-title{font-size:11px;font-weight:500;color:var(--text);margin-bottom:3px}
+.tip-body{font-size:10px;color:var(--muted);line-height:1.4;font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Deck<span>Scan</span></div>
+  <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+</nav>
+
+<div class="tab-bar">
+  <button class="tab active" onclick="showTab('map',this)">Live map</button>
+  <button class="tab" onclick="showTab('checkin',this)">Check in</button>
+  <button class="tab" onclick="showTab('trends',this)">Trends</button>
+</div>
+
+<!-- MAP PAGE -->
+<div class="page active" id="page-map">
+<div class="container">
+  <div id="gps-splash" class="gps-splash">
+    <div class="gps-spinner"></div>
+    <div class="gps-title">Finding your location...</div>
+    <div class="gps-sub">Allow location access when your browser asks</div>
+  </div>
+  <div id="map-content" style="display:none">
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-val g" id="s-open">—</div><div class="stat-lbl">open spots</div></div>
+      <div class="stat"><div class="stat-val a" id="s-leaving">—</div><div class="stat-lbl">leaving soon</div></div>
+      <div class="stat"><div class="stat-val" id="s-users">—</div><div class="stat-lbl">active users</div></div>
+    </div>
+    <div class="best-banner">
+      <div>
+        <div style="font-size:10px;color:var(--green);opacity:.7;font-family:'DM Mono',monospace;margin-bottom:2px">BEST FLOOR NOW</div>
+        <div class="best-floor" id="best-name">L3</div>
+      </div>
+      <div class="best-right" id="best-free">— open spots<br>head there first</div>
+    </div>
+    <div class="sec">Your area — live parking</div>
+    <div id="map"></div>
+    <div class="floor-pills" id="floor-pills"></div>
+    <div class="sec">SE4 floor breakdown</div>
+    <div class="floor-grid" id="floor-grid"></div>
+    <div class="sec">Live activity</div>
+    <div class="activity" id="activity"></div>
+  </div>
+</div>
+</div>
+
+<!-- CHECKIN PAGE -->
+<div class="page" id="page-checkin">
+<div class="container">
+  <div id="parked-wrap" style="display:none">
+    <div class="parked-card">
+      <div class="parked-title">You're checked in</div>
+      <div class="parked-sub" id="parked-info"></div>
+      <button class="leave-btn" onclick="doCheckOut()">I'm leaving now</button>
+    </div>
+  </div>
+  <div id="ci-form">
+    <div class="ci-wrap">
+      <span class="fl">Car park</span>
+      <div class="lot-row">
+        <button class="lot-btn sel" id="b-SE4" onclick="doSelLot('SE4')">SE4 deck</button>
+        <button class="lot-btn" id="b-SE5" onclick="doSelLot('SE5')">SE5 surface</button>
+      </div>
+      <div id="floor-section">
+        <span class="fl">Floor</span>
+        <div class="floor-row" id="floor-btns"></div>
+      </div>
+      <span class="fl">Staying for</span>
+      <div class="dur-row">
+        <button class="dur-btn" onclick="doSelDur(30,this)">30m</button>
+        <button class="dur-btn sel" onclick="doSelDur(60,this)">1hr</button>
+        <button class="dur-btn" onclick="doSelDur(120,this)">2hr</button>
+        <button class="dur-btn" onclick="doSelDur(240,this)">4hr+</button>
+      </div>
+      <button class="cta" onclick="doCheckIn()">Check in</button>
+    </div>
+    <div class="sec">Current availability</div>
+    <div class="floor-grid" id="floor-grid-2"></div>
+  </div>
+</div>
+</div>
+
+<!-- TRENDS PAGE -->
+<div class="page" id="page-trends">
+<div class="container">
+  <div class="sec">When is SE4 typically busy?</div>
+  <div class="trend-wrap"><table class="trend-table" id="trend-table"></table></div>
+  <div class="sec">Smart tips</div>
+  <div class="tip-grid">
+    <div class="tip"><div class="tip-title">🌅 Best arrival</div><div class="tip-body">Before 8am weekdays</div></div>
+    <div class="tip"><div class="tip-title">⚠️ Avoid</div><div class="tip-body">Mon–Thu 8–10am peak</div></div>
+    <div class="tip"><div class="tip-title">🌙 Quietest</div><div class="tip-body">Sat after 5pm empty</div></div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,onValue,set,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const fbApp=initializeApp({databaseURL:"https://deckscan-bda7b-default-rtdb.firebaseio.com"});
+const db=getDatabase(fbApp);
+const dbRef=ref(db,'deckscan');
+
+let FLOOR_CAP=80,SE5_CAP=120;
+const FLOORS=['G','L1','L2','L3'];
+
+let S={
+  SE4:{G:72,L1:65,L2:38,L3:12},
+  SE5:95,users:24,leaving:3,
+  activeFloor:'L3',selLot:'SE4',selFloor:'L3',selDur:60,session:null
+};
+let feed=[
+  {cls:'act-g',text:'<strong>L3</strong> — spot just freed up',t:'just now'},
+  {cls:'act-a',text:'<strong>G floor</strong> — 2 leaving in ~5 min',t:'1m ago'},
+  {cls:'act-g',text:'<strong>SE5</strong> — 3 spots opened',t:'3m ago'},
+  {cls:'act-g',text:'<strong>L1</strong> — filling up',t:'5m ago'},
+];
+
+// Parking zone offsets from user location (in degrees, ~100-200m)
+// SE4 is slightly north-west, SE5 is slightly north-east
+const SE4_OFFSET={latMin:-0.0006,latMax:0.0002,lngMin:-0.0018,lngMax:-0.0006};
+const SE5_OFFSET={latMin:-0.0006,latMax:0.0002,lngMin:-0.0004,lngMax:0.0010};
+
+let userLat=null,userLng=null;
+let map=null,userMarker=null;
+let se4Rect=null,se5Rect=null,se4Heat=null,se5Heat=null;
+let mapInit=false;
+
+// ── GET USER LOCATION ──
+function startGPS(){
+  if(!navigator.geolocation){
+    // Fallback to Monash if no GPS
+    initMap(-37.9098,145.1323);
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos=>initMap(pos.coords.latitude,pos.coords.longitude),
+    ()=>initMap(-37.9098,145.1323), // fallback to Monash
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
+
+function initMap(lat,lng){
+  userLat=lat;userLng=lng;
+  document.getElementById('gps-splash').style.display='none';
+  document.getElementById('map-content').style.display='block';
+
+  map=L.map('map',{zoomControl:true,attributionControl:false}).setView([lat,lng],17);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:20}).addTo(map);
+
+  // User location dot (blue pulsing)
+  const userIcon=L.divIcon({
+    className:'',
+    html:`<div class="user-dot-wrap"><div class="user-ripple"></div><div class="user-dot"></div></div>`,
+    iconSize:[20,20],iconAnchor:[10,10]
+  });
+  userMarker=L.marker([lat,lng],{icon:userIcon,zIndexOffset:1000}).addTo(map);
+
+  // Draw parking zones relative to user location
+  drawZones(lat,lng);
+
+  // Watch position for live movement
+  navigator.geolocation.watchPosition(pos=>{
+    const{latitude:la,longitude:lo}=pos.coords;
+    userLat=la;userLng=lo;
+    userMarker.setLatLng([la,lo]);
+  },{enableHighAccuracy:true,maximumAge:2000});
+
+  mapInit=true;
+  renderAll();
+  updateMapColors();
+}
+
+function getBounds(lat,lng,offset){
+  return[
+    [lat+offset.latMin, lng+offset.lngMin],
+    [lat+offset.latMax, lng+offset.lngMax]
+  ];
+}
+
+function mkLabel(html){return L.divIcon({className:'',html,iconAnchor:[0,10]})}
+
+function drawZones(lat,lng){
+  const se4Bounds=getBounds(lat,lng,SE4_OFFSET);
+  const se5Bounds=getBounds(lat,lng,SE5_OFFSET);
+
+  se4Rect=L.rectangle(se4Bounds,{color:'#22c98a',weight:2,fillColor:'#22c98a',fillOpacity:0.1}).addTo(map);
+  se5Rect=L.rectangle(se5Bounds,{color:'#f5a623',weight:2,fillColor:'#f5a623',fillOpacity:0.1}).addTo(map);
+
+  // Labels
+  const se4Mid=[lat+(SE4_OFFSET.latMin+SE4_OFFSET.latMax)/2, lng+(SE4_OFFSET.lngMin+SE4_OFFSET.lngMax)/2];
+  const se5Mid=[lat+(SE5_OFFSET.latMin+SE5_OFFSET.latMax)/2, lng+(SE5_OFFSET.lngMin+SE5_OFFSET.lngMax)/2];
+
+  L.marker(se4Mid,{icon:mkLabel('<div style="background:#0d3d28;border:1px solid #22c98a;color:#22c98a;font-family:DM Mono,monospace;font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap">SE4 — deck</div>')}).addTo(map);
+  L.marker(se5Mid,{icon:mkLabel('<div style="background:#3d2a08;border:1px solid #f5a623;color:#f5a623;font-family:DM Mono,monospace;font-size:11px;font-weight:500;padding:3px 8px;border-radius:6px;white-space:nowrap">SE5 — surface</div>')}).addTo(map);
+
+  // Heatmap layers
+  se4Heat=new HeatLayer(se4Bounds,()=>FLOORS.reduce((t,f)=>t+S.SE4[f]/((window._CAP&&window._CAP[f])||80),0)/FLOORS.length,42);
+  se5Heat=new HeatLayer(se5Bounds,()=>S.SE5/SE5_CAP,99);
+  se4Heat.addTo(map);
+  se5Heat.addTo(map);
+}
+
+// ── IDW HEATMAP LAYER ──
+function rng32(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function heatCol(t){
+  t=Math.max(0,Math.min(1,t));
+  let r,g,b;
+  if(t<.3){let p=t/.3;r=Math.round(20+p*160);g=Math.round(185+p*25);b=Math.round(80-p*55);}
+  else if(t<.55){let p=(t-.3)/.25;r=Math.round(180+p*75);g=Math.round(210-p*90);b=25;}
+  else if(t<.8){let p=(t-.55)/.25;r=255;g=Math.round(120-p*90);b=15;}
+  else{let p=(t-.8)/.2;r=Math.round(245-p*45);g=30;b=20;}
+  return{r,g,b};
+}
+
+class HeatLayer extends L.Layer{
+  constructor(bounds,getPct,seed){
+    super();
+    this._b=L.latLngBounds(bounds);
+    this._getPct=getPct;
+    this._seed=seed;
+    this._c=document.createElement('canvas');
+    this._c.style.cssText='position:absolute;pointer-events:none';
+  }
+  onAdd(m){
+    this._map=m;
+    m.getPanes().overlayPane.appendChild(this._c);
+    m.on('zoom viewreset moveend',this._r,this);
+    this._r();
+  }
+  onRemove(m){
+    m.getPanes().overlayPane.removeChild(this._c);
+    m.off('zoom viewreset moveend',this._r,this);
+  }
+  _r(){
+    const m=this._map;
+    const tl=m.latLngToLayerPoint(this._b.getNorthWest());
+    const br=m.latLngToLayerPoint(this._b.getSouthEast());
+    const sz=br.subtract(tl);
+    const c=this._c;
+    c.width=Math.max(2,sz.x);c.height=Math.max(2,sz.y);
+    c.style.left=tl.x+'px';c.style.top=tl.y+'px';
+    const W=c.width,H=c.height;
+    const ctx=c.getContext('2d');
+    const img=ctx.createImageData(W,H);
+    const pix=img.data;
+    const g=rng32(this._seed);
+    const pct=this._getPct();
+    const N=14;
+    const pts=[];
+    for(let i=0;i<N;i++) pts.push({px:(0.05+g()*0.9)*W,py:(0.05+g()*0.9)*H,h:Math.min(.98,pct*.72+g()*.35)});
+    for(let y=0;y<H;y++){
+      for(let x=0;x<W;x++){
+        let ws=0,vs=0;
+        for(const p of pts){
+          const dx=x-p.px,dy=y-p.py,d=Math.sqrt(dx*dx+dy*dy)||.5;
+          const w=1/Math.pow(d,2.5);ws+=w;vs+=w*p.h;
+        }
+        const col=heatCol(vs/ws),idx=(y*W+x)*4;
+        pix[idx]=col.r;pix[idx+1]=col.g;pix[idx+2]=col.b;pix[idx+3]=190;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  }
+  update(){if(this._map)this._r();}
+}
+
+function updateMapColors(){
+  if(!se4Rect||!se5Rect)return;
+  const s4=FLOORS.reduce((t,f)=>t+S.SE4[f]/((window._CAP&&window._CAP[f])||80),0)/FLOORS.length;
+  const s5=S.SE5/SE5_CAP;
+  const col=v=>v<.5?'#22c98a':v<.85?'#f5a623':'#e84040';
+  se4Rect.setStyle({color:col(s4),fillColor:col(s4)});
+  se5Rect.setStyle({color:col(s5),fillColor:col(s5)});
+}
+
+// ── FIREBASE ──
+get(dbRef).then(snap=>{
+  if(!snap.exists())set(dbRef,{SE4:S.SE4,SE5:S.SE5,users:S.users,leaving:S.leaving});
+});
+
+onValue(dbRef,snap=>{
+  if(!snap.exists())return;
+  const d=snap.val();
+  if(d.SE4)S.SE4={...S.SE4,...d.SE4};
+  if(d.SE5!==undefined)S.SE5=d.SE5;
+  if(d.users!==undefined)S.users=d.users;
+  if(d.leaving!==undefined)S.leaving=d.leaving;
+  if(d.CAP){FLOOR_CAP=d.CAP.G||80;SE5_CAP=d.CAP.SE5||120;window._CAP=d.CAP;}
+  if(d.lastEvent&&d.lastEvent.ts){
+    const ev=d.lastEvent;
+    if(!feed[0]||feed[0].ts!==ev.ts){
+      feed.unshift({cls:ev.cls,text:ev.text,t:'just now',ts:ev.ts});
+      feed=feed.slice(0,6);
+    }
+  }
+  renderAll();
+  if(se4Heat)se4Heat.update();
+  if(se5Heat)se5Heat.update();
+  updateMapColors();
+});
+
+function pushDB(evt){
+  set(dbRef,{SE4:S.SE4,SE5:S.SE5,users:S.users,leaving:S.leaving,lastEvent:evt||null});
+}
+
+// ── HELPERS ──
+function floorCap(f){return(window._CAP&&window._CAP[f])||FLOOR_CAP}
+function sumSE4(){return Object.values(S.SE4).reduce((a,b)=>a+b,0)}
+function bestFloor(){return FLOORS.reduce((a,b)=>S.SE4[a]/floorCap(a)<S.SE4[b]/floorCap(b)?a:b)}
+function floorOpen(f){return floorCap(f)-S.SE4[f]}
+function totalOpen(){return FLOORS.reduce((t,f)=>t+floorOpen(f),0)+(SE5_CAP-S.SE5)}
+function badgeCls(pct){return pct<.5?['Open','b-open']:pct<.85?['Busy','b-busy']:['Full','b-full']}
+
+// ── RENDER ──
+function renderAll(){
+  document.getElementById('s-open').textContent=totalOpen();
+  document.getElementById('s-leaving').textContent=S.leaving;
+  document.getElementById('s-users').textContent=S.users;
+  const bf=bestFloor();
+  document.getElementById('best-name').textContent=bf;
+  document.getElementById('best-free').textContent=floorOpen(bf)+' open spots\nhead there first';
+  document.getElementById('floor-pills').innerHTML=FLOORS.map(f=>`<button class="floor-pill${f===S.activeFloor?' active':''}" onclick="doSwitchFloor('${f}')">${f} · ${floorOpen(f)} open</button>`).join('');
+  renderFG('floor-grid');renderFG('floor-grid-2');renderFB();renderFeed();
+}
+
+function renderFG(id){
+  const el=document.getElementById(id);if(!el)return;
+  const bf=bestFloor();
+  el.innerHTML=FLOORS.map(f=>{
+    const pct=S.SE4[f]/floorCap(f),open=floorOpen(f),[lbl,cls]=badgeCls(pct);
+    const bc=pct<.5?'var(--green)':pct<.85?'var(--amber)':'var(--red)';
+    return`<div class="floor-card${f===bf?' best':''}"><div class="fc-top"><span class="fc-name">${f}</span><span class="fc-badge ${cls}">${lbl}</span></div><div class="fc-bar-wrap"><div class="fc-bar" style="width:${Math.round(pct*100)}%;background:${bc}"></div></div><div class="fc-footer"><span>${open} open</span><span>${Math.round(pct*100)}% full</span></div></div>`;
+  }).join('');
+}
+
+function renderFB(){
+  const el=document.getElementById('floor-btns');if(!el)return;
+  el.innerHTML=FLOORS.map(f=>`<button class="floor-btn${f===S.selFloor?' sel':''}" onclick="doSelFloor('${f}')">${f}<br><span style="font-size:9px;opacity:.6">${floorOpen(f)} open</span></button>`).join('');
+}
+
+function renderFeed(){
+  const el=document.getElementById('activity');if(!el)return;
+  el.innerHTML=feed.slice(0,4).map(a=>`<div class="act-item"><div class="act-dot ${a.cls}"></div><div class="act-text">${a.text}</div><div class="act-time">${a.t}</div></div>`).join('');
+}
+
+// ── ACTIONS ──
+window.doSwitchFloor=f=>{S.activeFloor=f;renderAll();if(se4Heat)se4Heat.update()};
+window.doSelFloor=f=>{S.selFloor=f;renderFB()};
+window.doSelLot=lot=>{
+  S.selLot=lot;
+  document.getElementById('b-SE4').classList.toggle('sel',lot==='SE4');
+  document.getElementById('b-SE5').classList.toggle('sel',lot==='SE5');
+  document.getElementById('floor-section').style.display=lot==='SE4'?'block':'none';
+};
+window.doSelDur=(d,btn)=>{
+  S.selDur=d;
+  document.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+};
+window.doCheckIn=()=>{
+  const lot=S.selLot,f=S.selFloor;
+  if(lot==='SE4')S.SE4[f]=Math.min(FLOOR_CAP,S.SE4[f]+1);
+  else S.SE5=Math.min(SE5_CAP,S.SE5+1);
+  S.users++;S.session={lot,floor:f,dur:S.selDur};
+  const ev={cls:'act-a',text:`<strong>${lot}${lot==='SE4'?' · '+f:''}</strong> — new arrival`,t:'just now',ts:Date.now()};
+  pushDB(ev);
+  document.getElementById('parked-info').textContent=`${lot} · ${lot==='SE4'?f:'surface'} · leaving in ${S.selDur} min`;
+  document.getElementById('parked-wrap').style.display='block';
+  document.getElementById('ci-form').style.display='none';
+  showToast('Checked in! Heatmap updated live 🟡');
+};
+window.doCheckOut=()=>{
+  if(!S.session)return;
+  const{lot,floor:f}=S.session;
+  if(lot==='SE4')S.SE4[f]=Math.max(0,S.SE4[f]-1);
+  else S.SE5=Math.max(0,S.SE5-1);
+  S.users=Math.max(0,S.users-1);S.session=null;
+  const ev={cls:'act-g',text:`<strong>${lot}${lot==='SE4'?' · '+f:''}</strong> — spot now free!`,t:'just now',ts:Date.now()};
+  pushDB(ev);
+  document.getElementById('parked-wrap').style.display='none';
+  document.getElementById('ci-form').style.display='block';
+  showToast('Checked out! Spot freed up 🟢');
+};
+
+window.showTab=(name,btn)=>{
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='map'&&map)setTimeout(()=>{map.invalidateSize();if(se4Heat)se4Heat.update();if(se5Heat)se5Heat.update();},80);
+};
+
+// ── TRENDS ──
+function renderTrends(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],hours=[7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+  const g=rng32(42);
+  function tv(d,h){
+    if(d>=5)return .1+g()*.2;
+    if(h>=8&&h<=10)return .8+g()*.15;
+    if(h>=11&&h<=14)return .6+g()*.2;
+    if(h>=15&&h<=17)return .5+g()*.15;
+    return .15+g()*.15;
+  }
+  const t=document.getElementById('trend-table');
+  t.innerHTML='<thead><tr><th></th>'+hours.map(h=>`<th>${h}</th>`).join('')+'</tr></thead>'
+    +'<tbody>'+days.map((d,di)=>'<tr><td>'+d+'</td>'+hours.map(h=>{
+      const v=tv(di,h),c=heatCol(v);
+      return`<td><div class="trend-cell" style="background:rgb(${c.r},${c.g},${c.b});opacity:.85"></div></td>`;
+    }).join('')+'</tr>').join('')+'</tbody>';
+}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2800);
+}
+window.showToast=showToast;
+
+// ── BACKGROUND DRIFT ──
+setInterval(()=>{
+  FLOORS.forEach(f=>{S.SE4[f]=Math.max(5,Math.min(FLOOR_CAP-2,S.SE4[f]+(Math.random()<.5?1:-1)))});
+  if(Math.random()<.4)S.SE5=Math.max(10,Math.min(SE5_CAP-5,S.SE5+(Math.random()<.5?1:-1)));
+  S.leaving=Math.max(1,Math.min(8,S.leaving+(Math.random()<.25?(Math.random()<.5?1:-1):0)));
+  renderAll();
+  if(se4Heat)se4Heat.update();
+  if(se5Heat)se5Heat.update();
+  updateMapColors();
+},9000);
+
+// ── INIT ──
+renderTrends();
+startGPS();
+</script>
+</body>
+</html>
