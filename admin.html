@@ -1,310 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DeckScan — Demo Control</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
-:root{--bg:#07090f;--bg2:#0d1117;--bg3:#131920;--border:#1c2430;--border2:#263040;--text:#e8edf5;--muted:#5a7080;--hint:#2e3d4d;--green:#22c98a;--green-dim:#0d3d28;--amber:#f5a623;--amber-dim:#3d2a08;--red:#e84040;--red-dim:#3d0f0f;}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding-bottom:40px}
-@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
-.logo{font-family:'Syne',sans-serif;font-size:16px;font-weight:800}
-.logo span{color:var(--red)}
-.badge{background:var(--red-dim);border:1px solid var(--red);color:var(--red);font-size:10px;padding:3px 9px;border-radius:10px;font-family:'DM Mono',monospace}
-.container{max-width:420px;margin:0 auto;padding:14px}
-.sec{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;margin-top:18px}
-.sec:first-child{margin-top:0}
-.sec-hint{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;line-height:1.5}
-
-/* CAPACITY */
-.cap-card{background:var(--bg2);border:1px solid var(--amber);border-radius:12px;padding:14px;margin-bottom:8px}
-.cap-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
-.cap-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.cap-label{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);width:46px;flex-shrink:0}
-.cap-slider{flex:1;accent-color:var(--amber)}
-.cap-val{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--amber);min-width:24px;text-align:right}
-.cap-used{font-size:10px;font-family:'DM Mono',monospace;min-width:56px;text-align:right}
-.cap-apply{width:100%;padding:12px;border-radius:8px;border:none;background:var(--amber);color:#07090f;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;transition:all .15s}
-.cap-apply:active{transform:scale(.97)}
-
-.tip{background:#0d2540;border:1px solid #4e9eff;border-radius:10px;padding:10px 12px;margin-bottom:4px;font-size:12px;color:#4e9eff;font-family:'DM Mono',monospace;line-height:1.6}
-
-.status-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px}
-.srow{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
-.srow:last-child{border-bottom:none;padding-bottom:0}
-.srow:first-child{padding-top:0}
-.skey{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)}
-.sval{font-family:'Syne',sans-serif;font-size:12px;font-weight:700}
-.g{color:var(--green)}.a{color:var(--amber)}.r{color:var(--red)}
-
-.floor-sel{display:flex;gap:6px;margin-bottom:10px}
-.fs{flex:1;padding:9px 4px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;text-align:center;transition:all .15s}
-.fs.sel{border-color:var(--amber);color:var(--amber);background:var(--amber-dim)}
-
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.db{padding:14px 8px;border-radius:10px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4}
-.db:active{transform:scale(.96)}
-.db-arrive{background:var(--amber-dim);border:1px solid var(--amber);color:var(--amber)}
-.db-arrive:hover{background:var(--amber);color:#07090f}
-.db-leave{background:var(--green-dim);border:1px solid var(--green);color:var(--green)}
-.db-leave:hover{background:var(--green);color:#07090f}
-.db-red{background:var(--red-dim);border:1px solid var(--red);color:var(--red)}
-.db-red:hover{background:var(--red);color:#07090f}
-.db-gray{background:var(--bg3);border:1px solid var(--border2);color:var(--muted)}
-.db-gray:hover{color:var(--text)}
-
-.log-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;max-height:150px;overflow-y:auto}
-.log-row{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border)}
-.log-row:last-child{border-bottom:none}
-
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0d3d28;border:1px solid var(--green);color:var(--green);padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9999;white-space:nowrap;font-family:'DM Mono',monospace}
-.toast.show{opacity:1}
-.ldot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.2s ease-in-out infinite;margin-right:4px;vertical-align:middle}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="DeckScan — Demo control panel" />
+  <title>DeckScan — Demo Control</title>
+  <link rel="stylesheet" href="css/admin.css" />
 </head>
 <body>
+
 <nav>
   <div class="logo">Deck<span>Scan</span> Control</div>
   <div class="badge">DEMO PANEL</div>
 </nav>
+
 <div class="container">
 
   <div class="sec">Demo capacity — key setting</div>
-  <div class="sec-hint">Shrink total spots per floor so 1 real check-in makes a big visible difference on the heatmap</div>
+  <p class="sec-hint">Shrink total spots per floor so 1 real check-in makes a big visible difference on the heatmap</p>
   <div class="tip">💡 Pro tip: Set L3 to 5 spots, fill 4 via scenario → then check in on the app → watch it go RED live</div>
+
   <div class="cap-card">
     <div class="cap-row">
       <span class="cap-label">SE4 · G</span>
-      <input type="range" class="cap-slider" min="2" max="80" step="1" value="80" id="cap-G" oninput="updCap('G')">
+      <input type="range" class="cap-slider" id="cap-G" data-floor="G" min="2" max="80" step="1" value="80" />
       <span class="cap-val" id="cv-G">80</span>
       <span class="cap-used" id="cu-G"></span>
     </div>
     <div class="cap-row">
       <span class="cap-label">SE4 · L1</span>
-      <input type="range" class="cap-slider" min="2" max="80" step="1" value="80" id="cap-L1" oninput="updCap('L1')">
+      <input type="range" class="cap-slider" id="cap-L1" data-floor="L1" min="2" max="80" step="1" value="80" />
       <span class="cap-val" id="cv-L1">80</span>
       <span class="cap-used" id="cu-L1"></span>
     </div>
     <div class="cap-row">
       <span class="cap-label">SE4 · L2</span>
-      <input type="range" class="cap-slider" min="2" max="80" step="1" value="80" id="cap-L2" oninput="updCap('L2')">
+      <input type="range" class="cap-slider" id="cap-L2" data-floor="L2" min="2" max="80" step="1" value="80" />
       <span class="cap-val" id="cv-L2">80</span>
       <span class="cap-used" id="cu-L2"></span>
     </div>
     <div class="cap-row">
       <span class="cap-label">SE4 · L3</span>
-      <input type="range" class="cap-slider" min="2" max="80" step="1" value="5" id="cap-L3" oninput="updCap('L3')">
+      <input type="range" class="cap-slider" id="cap-L3" data-floor="L3" min="2" max="80" step="1" value="5" />
       <span class="cap-val" id="cv-L3">5</span>
       <span class="cap-used" id="cu-L3"></span>
     </div>
     <div class="cap-row">
       <span class="cap-label">SE5 lot</span>
-      <input type="range" class="cap-slider" min="2" max="120" step="1" value="120" id="cap-SE5" oninput="updCap('SE5')">
+      <input type="range" class="cap-slider" id="cap-SE5" data-floor="SE5" min="2" max="120" step="1" value="120" />
       <span class="cap-val" id="cv-SE5">120</span>
       <span class="cap-used" id="cu-SE5"></span>
     </div>
-    <button class="cap-apply" onclick="applyCap()">Apply & push to all devices</button>
+    <button class="cap-apply" id="apply-cap">Apply &amp; push to all devices</button>
   </div>
 
-  <div class="sec">Live status <span class="ldot"></span></div>
+  <div class="sec">Live status <span class="live-dot"></span></div>
   <div class="status-card">
-    <div class="srow"><span class="skey">SE4 · G</span><span class="sval a" id="st-G">—</span></div>
-    <div class="srow"><span class="skey">SE4 · L1</span><span class="sval a" id="st-L1">—</span></div>
-    <div class="srow"><span class="skey">SE4 · L2</span><span class="sval a" id="st-L2">—</span></div>
-    <div class="srow"><span class="skey">SE4 · L3</span><span class="sval g" id="st-L3">—</span></div>
-    <div class="srow"><span class="skey">SE5</span><span class="sval a" id="st-SE5">—</span></div>
-    <div class="srow"><span class="skey">Users</span><span class="sval" id="st-users">—</span></div>
+    <div class="status-row">
+      <span class="status-key">SE4 · G</span>
+      <span class="status-val a" id="st-G">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">SE4 · L1</span>
+      <span class="status-val a" id="st-L1">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">SE4 · L2</span>
+      <span class="status-val a" id="st-L2">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">SE4 · L3</span>
+      <span class="status-val g" id="st-L3">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">SE5</span>
+      <span class="status-val a" id="st-SE5">—</span>
+    </div>
+    <div class="status-row">
+      <span class="status-key">Users</span>
+      <span class="status-val" id="st-users">—</span>
+    </div>
   </div>
 
   <div class="sec">SE4 — simulate traffic</div>
   <div class="floor-sel">
-    <button class="fs sel" onclick="selF('G',this)">G</button>
-    <button class="fs" onclick="selF('L1',this)">L1</button>
-    <button class="fs" onclick="selF('L2',this)">L2</button>
-    <button class="fs" onclick="selF('L3',this)">L3</button>
+    <button class="floor-sel-btn sel" data-floor="G">G</button>
+    <button class="floor-sel-btn" data-floor="L1">L1</button>
+    <button class="floor-sel-btn" data-floor="L2">L2</button>
+    <button class="floor-sel-btn" data-floor="L3">L3</button>
   </div>
   <div class="btn-grid">
-    <button class="db db-arrive" onclick="arrive('SE4')">+ Car arrives<br><small style="opacity:.7">fills up</small></button>
-    <button class="db db-leave" onclick="leave('SE4')">- Car leaves<br><small style="opacity:.7">frees up</small></button>
+    <button class="action-btn btn-arrive" data-action="arrive" data-lot="SE4">
+      + Car arrives<br><small style="opacity:.7">fills up</small>
+    </button>
+    <button class="action-btn btn-leave" data-action="depart" data-lot="SE4">
+      − Car leaves<br><small style="opacity:.7">frees up</small>
+    </button>
   </div>
 
   <div class="sec">SE5 surface lot</div>
   <div class="btn-grid">
-    <button class="db db-arrive" onclick="arrive('SE5')">+ Car arrives<br><small style="opacity:.7">fills up</small></button>
-    <button class="db db-leave" onclick="leave('SE5')">- Car leaves<br><small style="opacity:.7">frees up</small></button>
+    <button class="action-btn btn-arrive" data-action="arrive" data-lot="SE5">
+      + Car arrives<br><small style="opacity:.7">fills up</small>
+    </button>
+    <button class="action-btn btn-leave" data-action="depart" data-lot="SE5">
+      − Car leaves<br><small style="opacity:.7">frees up</small>
+    </button>
   </div>
 
   <div class="sec">Demo scenarios</div>
   <div class="btn-grid">
-    <button class="db db-red" onclick="scenario('busy')">🔴 Make BUSY<br><small style="opacity:.7">Red heatmap</small></button>
-    <button class="db db-leave" onclick="scenario('quiet')">🟢 Make QUIET<br><small style="opacity:.7">Green heatmap</small></button>
-    <button class="db db-arrive" onclick="scenario('morning')">🌅 Morning rush<br><small style="opacity:.7">Realistic peak</small></button>
-    <button class="db db-gray" onclick="scenario('reset')">↺ Reset all<br><small style="opacity:.7">Default state</small></button>
+    <button class="action-btn btn-red" data-scenario="busy">
+      🔴 Make BUSY<br><small style="opacity:.7">Red heatmap</small>
+    </button>
+    <button class="action-btn btn-leave" data-scenario="quiet">
+      🟢 Make QUIET<br><small style="opacity:.7">Green heatmap</small>
+    </button>
+    <button class="action-btn btn-arrive" data-scenario="morning">
+      🌅 Morning rush<br><small style="opacity:.7">Realistic peak</small>
+    </button>
+    <button class="action-btn btn-gray" data-scenario="reset">
+      ↺ Reset all<br><small style="opacity:.7">Default state</small>
+    </button>
   </div>
 
   <div class="sec">Activity log</div>
-  <div class="log-box" id="log"><div class="log-row">Waiting...</div></div>
+  <div class="log-box" id="log">
+    <div class="log-row">Waiting...</div>
+  </div>
+
 </div>
+
 <div class="toast" id="toast"></div>
 
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getDatabase,ref,onValue,set,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const fbApp=initializeApp({databaseURL:"https://deckscan-bda7b-default-rtdb.firebaseio.com"});
-const db=getDatabase(fbApp);
-const dbRef=ref(db,'deckscan');
-const FLOORS=['G','L1','L2','L3'];
-
-let S={SE4:{G:72,L1:65,L2:38,L3:4},SE5:95,users:24,leaving:3};
-let CAP={G:80,L1:80,L2:80,L3:5,SE5:120};
-let selFloor='G';
-let logs=[];
-
-// Cap display
-window.updCap=function(f){
-  const v=parseInt(document.getElementById('cap-'+f).value);
-  document.getElementById('cv-'+f).textContent=v;
-  refreshCapUsed(f,v);
-};
-
-function refreshCapUsed(f,cap){
-  const el=document.getElementById('cu-'+f);if(!el)return;
-  const taken=f==='SE5'?S.SE5:S.SE4[f];
-  const safe=Math.min(taken,cap);
-  const pct=Math.round((safe/cap)*100);
-  el.textContent=safe+'/'+cap;
-  el.style.color=pct<50?'var(--green)':pct<85?'var(--amber)':'var(--red)';
-}
-
-function initCaps(){
-  FLOORS.forEach(f=>{
-    document.getElementById('cap-'+f).value=CAP[f];
-    document.getElementById('cv-'+f).textContent=CAP[f];
-    refreshCapUsed(f,CAP[f]);
-  });
-  document.getElementById('cap-SE5').value=CAP.SE5;
-  document.getElementById('cv-SE5').textContent=CAP.SE5;
-  refreshCapUsed('SE5',CAP.SE5);
-}
-
-window.applyCap=function(){
-  CAP.G=parseInt(document.getElementById('cap-G').value);
-  CAP.L1=parseInt(document.getElementById('cap-L1').value);
-  CAP.L2=parseInt(document.getElementById('cap-L2').value);
-  CAP.L3=parseInt(document.getElementById('cap-L3').value);
-  CAP.SE5=parseInt(document.getElementById('cap-SE5').value);
-  FLOORS.forEach(f=>{S.SE4[f]=Math.min(S.SE4[f],CAP[f]-1)});
-  S.SE5=Math.min(S.SE5,CAP.SE5-1);
-  const ev={cls:'act-a',text:`<strong>Admin</strong> — capacities updated (L3: ${CAP.L3} spots)`,t:'just now',ts:Date.now()};
-  pushState(ev,true);
-  toast('Applied! L3 now has '+CAP.L3+' total spots 🎯');
-};
-
-// Firebase
-onValue(dbRef,snap=>{
-  if(!snap.exists())return;
-  const d=snap.val();
-  if(d.SE4)S.SE4={...S.SE4,...d.SE4};
-  if(d.SE5!==undefined)S.SE5=d.SE5;
-  if(d.users!==undefined)S.users=d.users;
-  if(d.leaving!==undefined)S.leaving=d.leaving;
-  if(d.CAP)Object.assign(CAP,d.CAP);
-  renderStatus();
-  FLOORS.forEach(f=>refreshCapUsed(f,CAP[f]));
-  refreshCapUsed('SE5',CAP.SE5);
-});
-
-function pushState(ev,withCap){
-  const p={SE4:S.SE4,SE5:S.SE5,users:S.users,leaving:S.leaving,lastEvent:ev||null};
-  if(withCap)p.CAP=CAP;
-  set(dbRef,p);
-  if(ev){
-    const txt=ev.text.replace(/<[^>]*>/g,'');
-    logs.unshift('['+new Date().toLocaleTimeString()+'] '+txt);
-    logs=logs.slice(0,20);
-    document.getElementById('log').innerHTML=logs.map(l=>`<div class="log-row">${l}</div>`).join('');
-  }
-}
-
-function renderStatus(){
-  FLOORS.forEach(f=>{
-    const pct=S.SE4[f]/CAP[f],open=CAP[f]-S.SE4[f];
-    const el=document.getElementById('st-'+f);
-    el.textContent=Math.max(0,open)+' open · '+Math.round(Math.min(100,pct*100))+'% (cap '+CAP[f]+')';
-    el.className='sval '+(pct<.5?'g':pct<.85?'a':'r');
-  });
-  const p5=S.SE5/CAP.SE5;
-  const e5=document.getElementById('st-SE5');
-  e5.textContent=Math.max(0,CAP.SE5-S.SE5)+' open · '+Math.round(Math.min(100,p5*100))+'% (cap '+CAP.SE5+')';
-  e5.className='sval '+(p5<.5?'g':p5<.85?'a':'r');
-  document.getElementById('st-users').textContent=S.users+' online';
-}
-
-function toast(msg){
-  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
-  clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2500);
-}
-
-window.selF=function(f,btn){selFloor=f;document.querySelectorAll('.fs').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel')};
-
-window.arrive=function(lot){
-  if(lot==='SE4'){
-    const cap=CAP[selFloor];
-    if(S.SE4[selFloor]>=cap){toast('SE4 '+selFloor+' is FULL!');return;}
-    S.SE4[selFloor]=Math.min(cap,S.SE4[selFloor]+1);S.users=Math.min(50,S.users+1);
-    const open=cap-S.SE4[selFloor];
-    pushState({cls:'act-a',text:`<strong>SE4 · ${selFloor}</strong> — car arrived · ${open}/${cap} left`,t:'just now',ts:Date.now()});
-    toast(`SE4 ${selFloor}: ${open} of ${cap} spots left`);
-  }else{
-    if(S.SE5>=CAP.SE5){toast('SE5 is FULL!');return;}
-    S.SE5=Math.min(CAP.SE5,S.SE5+1);S.users=Math.min(50,S.users+1);
-    pushState({cls:'act-a',text:`<strong>SE5</strong> — car arrived · ${CAP.SE5-S.SE5}/${CAP.SE5} left`,t:'just now',ts:Date.now()});
-    toast(`SE5: ${CAP.SE5-S.SE5} of ${CAP.SE5} left`);
-  }
-};
-
-window.leave=function(lot){
-  if(lot==='SE4'){
-    if(S.SE4[selFloor]<=0){toast('SE4 '+selFloor+' already empty!');return;}
-    S.SE4[selFloor]=Math.max(0,S.SE4[selFloor]-1);S.users=Math.max(0,S.users-1);
-    const open=CAP[selFloor]-S.SE4[selFloor];
-    pushState({cls:'act-g',text:`<strong>SE4 · ${selFloor}</strong> — spot freed! ${open} open`,t:'just now',ts:Date.now()});
-    toast(`SE4 ${selFloor}: spot freed · ${open} open`);
-  }else{
-    if(S.SE5<=0){toast('SE5 already empty!');return;}
-    S.SE5=Math.max(0,S.SE5-1);S.users=Math.max(0,S.users-1);
-    pushState({cls:'act-g',text:`<strong>SE5</strong> — spot freed! ${CAP.SE5-S.SE5} open`,t:'just now',ts:Date.now()});
-    toast(`SE5: spot freed · ${CAP.SE5-S.SE5} open`);
-  }
-};
-
-window.scenario=function(type){
-  const sc={
-    busy:{G:Math.round(CAP.G*.95),L1:Math.round(CAP.L1*.94),L2:Math.round(CAP.L2*.91),L3:Math.round(CAP.L3*.92),SE5:Math.round(CAP.SE5*.93),u:38,lv:5,txt:'Peak hour — all lots filling fast',c:'act-a'},
-    quiet:{G:Math.round(CAP.G*.18),L1:Math.round(CAP.L1*.15),L2:Math.round(CAP.L2*.1),L3:Math.round(CAP.L3*.08),SE5:Math.round(CAP.SE5*.2),u:7,lv:1,txt:'Quiet period — plenty of spots',c:'act-g'},
-    morning:{G:Math.round(CAP.G*.97),L1:Math.round(CAP.L1*.93),L2:Math.round(CAP.L2*.65),L3:Math.round(CAP.L3*.22),SE5:Math.round(CAP.SE5*.82),u:34,lv:4,txt:'Morning rush — G & L1 almost full, try L3',c:'act-a'},
-    reset:{G:Math.round(CAP.G*.9),L1:Math.round(CAP.L1*.81),L2:Math.round(CAP.L2*.47),L3:Math.round(CAP.L3*.15),SE5:Math.round(CAP.SE5*.79),u:24,lv:3,txt:null,c:'act-g'},
-  };
-  const s=sc[type];
-  S.SE4={G:s.G,L1:s.L1,L2:s.L2,L3:s.L3};S.SE5=s.SE5;S.users=s.u;S.leaving=s.lv;
-  pushState(s.txt?{cls:s.c,text:`<strong>Scenario</strong> — ${s.txt}`,t:'just now',ts:Date.now()}:null);
-  toast('Scenario: '+type.toUpperCase()+' ✅');
-};
-
-get(dbRef).then(snap=>{
-  if(snap.exists()){
-    const d=snap.val();
-    if(d.SE4)S.SE4={...S.SE4,...d.SE4};
-    if(d.SE5!==undefined)S.SE5=d.SE5;
-    if(d.users!==undefined)S.users=d.users;
-    if(d.CAP)Object.assign(CAP,d.CAP);
-  }
-  initCaps();renderStatus();
-});
-</script>
+<script type="module" src="js/admin.js"></script>
 </body>
 </html>

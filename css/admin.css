@@ -1,0 +1,381 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+
+/* ─── Design tokens ─── */
+:root {
+  --bg:         #07090f;
+  --bg2:        #0d1117;
+  --bg3:        #131920;
+  --border:     #1c2430;
+  --border2:    #263040;
+  --text:       #e8edf5;
+  --muted:      #5a7080;
+  --hint:       #2e3d4d;
+  --green:      #22c98a;
+  --green-dim:  #0d3d28;
+  --amber:      #f5a623;
+  --amber-dim:  #3d2a08;
+  --red:        #e84040;
+  --red-dim:    #3d0f0f;
+  --blue:       #4e9eff;
+}
+
+/* ─── Reset ─── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 1; }
+}
+
+/* ─── Navigation ─── */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.logo span {
+  color: var(--red);
+}
+
+.badge {
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  color: var(--red);
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ─── Layout ─── */
+.container {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px;
+}
+
+.sec {
+  font-family: 'Syne', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+  margin-top: 18px;
+}
+
+.sec:first-child {
+  margin-top: 0;
+}
+
+.sec-hint {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+/* ─── Capacity controls ─── */
+.cap-card {
+  background: var(--bg2);
+  border: 1px solid var(--amber);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 8px;
+}
+
+.cap-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cap-row:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.cap-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  width: 46px;
+  flex-shrink: 0;
+}
+
+.cap-slider {
+  flex: 1;
+  accent-color: var(--amber);
+}
+
+.cap-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+  min-width: 24px;
+  text-align: right;
+}
+
+.cap-used {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  min-width: 56px;
+  text-align: right;
+}
+
+.cap-apply {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--amber);
+  color: #07090f;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: all 0.15s;
+}
+
+.cap-apply:active {
+  transform: scale(0.97);
+}
+
+/* ─── Info tip ─── */
+.tip {
+  background: #0d2540;
+  border: 1px solid var(--blue);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--blue);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.6;
+}
+
+/* ─── Live status ─── */
+.status-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.status-row:first-child {
+  padding-top: 0;
+}
+
+.status-key {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-val {
+  font-family: 'Syne', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-val.g { color: var(--green); }
+.status-val.a { color: var(--amber); }
+.status-val.r { color: var(--red); }
+
+/* ─── Floor selector ─── */
+.floor-sel {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.floor-sel-btn {
+  flex: 1;
+  padding: 9px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.floor-sel-btn.sel {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-dim);
+}
+
+/* ─── Action buttons ─── */
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.action-btn {
+  padding: 14px 8px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.action-btn:active {
+  transform: scale(0.96);
+}
+
+.btn-arrive {
+  background: var(--amber-dim);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+}
+
+.btn-arrive:hover {
+  background: var(--amber);
+  color: #07090f;
+}
+
+.btn-leave {
+  background: var(--green-dim);
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+
+.btn-leave:hover {
+  background: var(--green);
+  color: #07090f;
+}
+
+.btn-red {
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  color: var(--red);
+}
+
+.btn-red:hover {
+  background: var(--red);
+  color: #07090f;
+}
+
+.btn-gray {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--muted);
+}
+
+.btn-gray:hover {
+  color: var(--text);
+}
+
+/* ─── Activity log ─── */
+.log-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.log-row {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-row:last-child {
+  border-bottom: none;
+}
+
+/* ─── Toast ─── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0d3d28;
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+  font-family: 'DM Mono', monospace;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+/* ─── Live indicator dot ─── */
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.2s ease-in-out infinite;
+  margin-right: 4px;
+  vertical-align: middle;
+}
